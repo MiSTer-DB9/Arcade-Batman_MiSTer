@@ -1,0 +1,157 @@
+# Synthesis source list for the Batman core.
+# Add game RTL here only, never through the Quartus GUI, and keep game logic out
+# of sys/ (the unmodified MiSTer framework).  Quartus rewrites Batman.qsf on
+# every compile, so hand-maintained assignments live here instead.
+#
+# Structure follows files.qip of the Skull & Crossbones MiSTer core
+# (GPL-3.0); see NOTICE.md.
+#
+# Every file listed compiles standalone: each module's submodules are listed
+# too.  A few files are analysed but not instantiated (see below); Quartus
+# prunes them.
+
+set_global_assignment -name QIP_FILE sys/sys.qip
+
+# ---- clocking ----
+# clk_sys = 57.272727 MHz = 4 x 14.318181 MHz (PLL 50 MHz M=63 N=5 C=11), the
+# PLL used by the Skull & Crossbones / Bad Lands / Xybots cores; outclk_1 is the
+# same rate, phase-shifted, for the SDRAM_CLK pin.
+set_global_assignment -name QIP_FILE rtl/pll.qip
+
+# ============================================================================
+#  analog output alignment (outside the game logic)
+# ============================================================================
+# CRT H-Size / H-Position and analog VGA H/V shift between batman_core and
+# arcade_video, set from the OSD.  analog_hsize.sv is Umberto Parisi's
+# (rmonic79) line-buffer resampler, with the small changes listed in its
+# header; see NOTICE.md.
+# batman_analog_adjust is the Skull & Crossbones module set for Batman's
+# 456 x 262 raster at ce_7m (CLK_PER_PIX = 8).
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/analog_hsize.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_analog_adjust.sv
+
+# ============================================================================
+#  the 68000 game board A048987-01 and the memory path
+# ============================================================================
+#   batman_gal_9l        GAL16V8A 136085-1002 at 9L, the main address decoder
+#   batman_decode        GAL 9L + F138 5/6K device decoder + LS138 1P/R strobes
+#   batman_dtack         F163 8K wait-state counter and the video /VDTACK handshake
+#   batman_watchdog      power-on reset and the LS197 12N/P watchdog
+#   batman_irq           10K LS08 interrupt encoder (levels 4 and 6)
+#   batman_inputs        LS257 input muxes, the /STATUS word, LS273 1S latch
+#   batman_main          block top: the above plus work RAM, EEPROM, program ROM
+#   batman_cpu           fx68k wired as the MC68000 at 6L/M
+#   batman_eeprom_28c16  28C16 at 12R and the 11N/P unlock flop
+#   batman_nvram_io      MiSTer save/restore of the EEPROM (ioctl index 2)
+#   batman_prog_rom      768 KB program ROM from SDRAM through a small cache
+#   batman_rom_loader    routes the ROM download (ioctl index 0) to SDRAM/BRAM
+#   batman_sdram_loader  byte stream -> 16-bit SDRAM words
+#   batman_sdram         SDR-SDRAM controller, CL2, bursts of 2/4/8
+#   batman_gfx_mem       SDRAM arbiter: CPU program, playfields, MOs, OKI samples
+set_global_assignment -name SEARCH_PATH rtl/main
+
+# fx68k (Jorge Cwik) is vendored unchanged under rtl/lib/fx68k/ with its own
+# LICENSE and README (GPL-3.0-or-later; NOTICE.md).
+#
+# This SEARCH_PATH is required: fx68k.sv loads microrom.mem and nanorom.mem
+# with relative paths.  If they are not found the microcode ROMs synthesise
+# empty and the core boots to a black screen with no obvious error.  Check
+# for Info (10905) naming each .mem file in the synthesis report.
+set_global_assignment -name SEARCH_PATH rtl/lib/fx68k
+# uaddrPla.sv is the opcode PLA that gets fx68k's documented multicycle
+# exception in Batman.sdc (rtl/lib/fx68k/fx68k.txt, "Timing analysis").
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/lib/fx68k/fx68k.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/lib/fx68k/fx68kAlu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/lib/fx68k/uaddrPla.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_cpu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_eeprom_28c16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_nvram_io.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_gal_9l.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_dtack.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_watchdog.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_irq.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_inputs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/main/batman_main.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/batman_prog_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/batman_rom_loader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/batman_sdram_loader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/batman_sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/mem/batman_gfx_mem.sv
+
+# ============================================================================
+#  the video system (VAD + MOB 137593-001; the schematic omits these sheets)
+# ============================================================================
+#   batman_gfx_client  the SDRAM adapter for the video fetchers: one wide
+#                      graphics fetch -> N byte beats
+set_global_assignment -name SEARCH_PATH rtl/video
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_gfx_client.sv
+# The four board GALs are transcribed from their fuse maps with ports named by
+# pin number; batman_mixer wires them together; batman_mob is the 137593-001
+# object list walk and batman_lb the two 137536-001 line buffers.
+#   batman_vram     64 KB video RAM and the VAD's access slot schedule
+#   batman_vad_dma  end-of-frame register reload, linescroll fetch, autostore
+#   batman_video    block top: registers, raster, playfields, alphanumerics
+#                   (character ROM in BRAM), SDRAM clients, colour RAM, DACs
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_gal_9b.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_gal_9c.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_gal_9d.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_gal_11d.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_mixer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_mob.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_lb.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_vad_regs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_vad_sync.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_pf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_alpha.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_cram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_dac.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_vram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_vad_dma.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_video.sv
+
+# ============================================================================
+#  the JSA III audio board A048974-01
+# ============================================================================
+# batman_sound is the block top (6502A at 11C, RAM 15C, program ROM 12C).  The
+# decode, I/O, mailbox, IRQ, ADPCM and mix modules are specific to this board;
+# these parts are shared with other cores:
+#   batman_ym          YM2151 through jt51, plus the YM3012 channel pairing
+#   batman_oki         MSM6295 at 10E (derived from klax_oki6295.v)
+#   batman_snd_iir1    one-pole IIR filter primitive (Q20)
+#   batman_snd_svf     two-pole state-variable filter primitive (Q16)
+#
+# T65 (Daniel Wallner and contributors) is VHDL and must be compiled in
+# dependency order: package, microcode and ALU, core, then the wrapper.
+set_global_assignment -name VHDL_FILE rtl/lib/T65/T65_Pack.vhd
+set_global_assignment -name VHDL_FILE rtl/lib/T65/T65_MCode.vhd
+set_global_assignment -name VHDL_FILE rtl/lib/T65/T65_ALU.vhd
+set_global_assignment -name VHDL_FILE rtl/lib/T65/T65.vhd
+set_global_assignment -name VHDL_FILE rtl/lib/T65/T65_wrap.vhd
+# jt51 (Jose Tejada, jotego) is used unchanged, through its own QIP.
+set_global_assignment -name QIP_FILE rtl/lib/jt51/hdl/jt51.qip
+# klax_oki6295.v (Klax MiSTer core, GPL-2.0-or-later) is kept unchanged as the
+# source batman_oki.sv was derived from.  It is not instantiated; it is listed
+# so every third-party file in the tree is named here.
+set_global_assignment -name VERILOG_FILE rtl/lib/oki/klax_oki6295.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_ym.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_oki.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_iir1.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_svf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_gal_17c.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_gal_20c.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_io.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_mailbox.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_irq.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_adpcm.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_snd_mix.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/batman_sound.sv
+
+# ---- core + emu glue ----
+# batman_clocks: the clock-enable tree.
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/batman_clocks.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/batman_core.sv
+set_global_assignment -name SDC_FILE Batman.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-Batman.sv
