@@ -21,13 +21,13 @@ set_global_assignment -name QIP_FILE rtl/pll.qip
 # ============================================================================
 #  analog output alignment (outside the game logic)
 # ============================================================================
-# CRT H-Size / H-Position and analog VGA H/V shift between batman_core and
-# arcade_video, set from the OSD.  analog_hsize.sv is Umberto Parisi's
-# (rmonic79) line-buffer resampler, with the small changes listed in its
-# header; see NOTICE.md.
-# batman_analog_adjust is the Skull & Crossbones module set for Batman's
-# 456 x 262 raster at ce_7m (CLK_PER_PIX = 8).
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/analog_hsize.sv
+# CRT Adjust (H-Size / H-Position / V-Shift, On/Off) between batman_core and
+# arcade_video, set from the OSD.  crt_adjust.sv is Umberto Parisi's
+# (rmonic79) line-buffer engine from MiSTer-CRT-Adjust, with the small
+# changes listed in its header; see NOTICE.md.
+# batman_analog_adjust is the OSD and read-rate glue around it, set for
+# Batman's 456 x 262 raster at ce_7m (CLK_PER_PIX = 8).
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/crt_adjust.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/video/batman_analog_adjust.sv
 
 # ============================================================================

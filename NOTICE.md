@@ -13,7 +13,7 @@ headers.
 | **T65**, a 65xx CPU core (VHDL) | Daniel Wallner, Mike Johnson, Wolfgang Scherr, Morten Leikvoll | BSD-style 3-clause (notice in `T65.vhd`) | `rtl/lib/T65/`: vendored verbatim. `T65_wrap.vhd` is a flat-port wrapper from the Skull & Crossbones core (GPL-3.0) |
 | **JT51**, the YM2151 FM synthesiser | José Tejada Gómez (jotego) | GPL-3.0-or-later | `rtl/lib/jt51/`: vendored verbatim |
 | **`klax_oki6295.v`**, an MSM6295 ADPCM core | the Klax MiSTer core authors | GPL-2.0-or-later | `rtl/lib/oki/`: vendored verbatim. `rtl/sound/batman_oki.sv` is derived from it |
-| `analog_hsize.sv`, the analog-VGA horizontal stretch | Umberto Parisi (rmonic79), from Arcade-Raiden_MiSTer | GPL-3.0-or-later | `rtl/video/analog_hsize.sv`: vendored with the two small changes listed in its header (made by the Toobin' MiSTer core) |
+| `crt_adjust.sv`, the CRT Adjust line buffer (H-Size, H-Position, V-Shift) | Umberto Parisi (rmonic79), from [MiSTer-CRT-Adjust](https://github.com/rmonic79/MiSTer-CRT-Adjust) commit `c682de9` | GPL-3.0-or-later | `rtl/video/crt_adjust.sv`: vendored with the four small changes listed in its header, shared with the other Atari MiSTer cores |
 | Intel PLL megafunction (50 MHz → 57.272727 MHz) | Intel Corporation (generated IP) | Intel FPGA IP licence, as generated | `rtl/pll.v`, `rtl/pll/` |
 
 All of these licences are compatible with distributing the combined work
