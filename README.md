@@ -81,12 +81,16 @@ core leaves them released.
 | Option | Effect |
 |--------|--------|
 | Aspect ratio / Orientation / Scale | Standard MiSTer video options |
-| Analog alignment | CRT H-Size, CRT H-Position, Analog VGA H-Shift and V-Shift, for CRT and analog VGA output |
+| CRT Adjust | On/Off, then CRT H-Size, CRT H-Position and CRT V-Shift, for CRT and analog VGA output. The three amounts appear only while CRT Adjust is On, and it stays off while the scandoubler is forced on |
 | Service | The cabinet's self-test switch. Turn it **On** to enter the service menu and **Off** to leave |
 | Reset | Resets the board |
 
-At zero the alignment controls do nothing, so the default settings leave the
-video output exactly as the core produces it.
+CRT Adjust is Off by default, and Off leaves the video output exactly as the
+core produces it. When it is On the picture goes through a one-line buffer, so
+HDMI follows the adjustment too; leave it Off for an untouched HDMI picture.
+H-Position moves the picture, never the sync. On this raster the right-hand
+margin is short: at H-Size 0, H-Position beyond +39 cuts the right edge, and
+enlarging H-Size past +5 needs a negative H-Position to keep the right edge.
 
 ---
 
@@ -243,7 +247,7 @@ third-party component and its licence:
 | `rtl/lib/T65/`, © Daniel Wallner and contributors | BSD-style |
 | `rtl/lib/jt51/`, © José Tejada Gómez | GPL-3.0-or-later |
 | `rtl/lib/oki/`, from the Klax MiSTer core | GPL-2.0-or-later |
-| `rtl/video/analog_hsize.sv`, © Umberto Parisi (rmonic79) | GPL-3.0-or-later |
+| `rtl/video/crt_adjust.sv`, © Umberto Parisi (rmonic79) | GPL-3.0-or-later |
 | `sys/`, MiSTer framework, © Alexey Melnikov and contributors | GPL-2.0-or-later / GPL-3.0-or-later |
 
 ---
@@ -254,8 +258,9 @@ third-party component and its licence:
 - **Jorge Cwik (ijor)**: the fx68k 68000 core.
 - **Daniel Wallner, MikeJ and contributors**: the T65 6502 core.
 - **José Tejada Gómez (jotego)**: the jt51 YM2151 core.
-- **Umberto Parisi (rmonic79)**: `analog_hsize.sv`, from
-  [Arcade-Raiden_MiSTer](https://github.com/rmonic79/Arcade-Raiden_MiSTer).
+- **Umberto Parisi (rmonic79)**: `crt_adjust.sv`, from
+  [MiSTer-CRT-Adjust](https://github.com/rmonic79/MiSTer-CRT-Adjust)
+  (commit `c682de9`).
 - **The Atari MiSTer cores**: Skull & Crossbones, Bad Lands, Vindicators,
   Xybots, Toobin', Klax and Blasteroids. They supplied the project structure,
   the SDRAM and ROM-loading chain, the OKI core and the MOB 137593-001
